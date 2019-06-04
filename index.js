@@ -10,74 +10,74 @@ function init() {
 
     const renderer = new THREE.WebGLRenderer();
     renderer.antialias = true;
-    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
     camera.position.z = 100;
 
-    //load('test2.svg');
-    load('test3.svg');
+    // for(let i =1; i <= 5; i++){
+    //     load('svgs/'+i+'.svg');
+    // }
 
-    //load('test3.svg');
+    let displayables = json.series.viewList[0].drawingModel.currentDisplayables;
 
-    function load(filename){
-        loader.load(filename, (data) => {
-
-                var paths = data.paths;
-                console.log(data);
-                var group = new THREE.Group();
-
-                console.log(paths);
-
-                for (let x = 0; x < paths.length; x++) {
-
-
-                    for (var i = 0; i < paths[x].subPaths.length; i++) {
-
-                        var path = paths[x].subPaths[i];
-
-                        const points = path.getPoints();
-
-                        console.log(path);
-
-                        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                        console.log(paths[x].userData);
-                        const material = new THREE.LineBasicMaterial({color: paths[x].userData.style.stroke});
-
-                        const line = new THREE.Line(geometry, material);
-                        group.add(line);
-
-
-                    }
-                }
-                // console.log(group);
-                scene.add(group);
-            }, (progress) => {
-
-            },
-            (error) => {
-                console.log(error);
-            });
+    for (let x = 0; x < displayables.length; x++) {
+        let content = displayables[x].display.replace(/\n|\r/gi, "");
+        let parsed = loader.parse(content);
+        doneFn(parsed);
     }
 
-    var path = new THREE.Path();
+    function doneFn(data) {
 
-    path.lineTo( 100, 100 );
-    path.quadraticCurveTo( 0, 1, -200, 250 );
-    path.lineTo( 1, 1 );
+        var paths = data.paths;
 
-    var points = path.getPoints();
-
-    var geometry = new THREE.BufferGeometry().setFromPoints( points );
-    var material = new THREE.LineBasicMaterial( { color: 'red' } );
-
-    var line = new THREE.Line( geometry, material );
-    scene.add( line );
+        var group = new THREE.Group();
 
 
+        for (let x = 0; x < paths.length; x++) {
 
 
+            for (var i = 0; i < paths[x].subPaths.length; i++) {
 
+                var path = paths[x].subPaths[i];
+
+                const points = path.getPoints();
+
+
+                points.forEach((point) => {
+                    point.x -= 300;
+                    point.y -= 300;
+                });
+
+
+                const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+                const material = new THREE.LineBasicMaterial({color: paths[x].userData.style.stroke});
+
+                const line = new THREE.Line(geometry, material);
+                group.add(line);
+
+
+            }
+        }
+        // console.log(group);
+        scene.add(group);
+    }
+
+
+    // var path = new THREE.Path();
+    //
+    // path.lineTo(100, 100);
+    // path.quadraticCurveTo(0, 1, -200, 250);
+    // path.lineTo(1, 1);
+    //
+    // var points = path.getPoints();
+    //
+    // var geometry = new THREE.BufferGeometry().setFromPoints(points);
+    // var material = new THREE.LineBasicMaterial({color: 'red'});
+    //
+    // var line = new THREE.Line(geometry, material);
+    // scene.add(line);
 
 
 // lighting
@@ -97,3 +97,4 @@ function init() {
         renderer.render(scene, camera);
     }
 }
+
