@@ -11,16 +11,25 @@ function init() {
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
     const ovcamera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / -2, window.innerHeight / 2, -2000, 10000);
-    console.log(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, -2000, 10000);
+    //console.log(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, -2000, 10000);
     //const pscamera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
     const objects = [];
     const camera = ovcamera;
+
+
+    THREE.SVGLoader.prototype.myTestFunction = () => {
+        console.log();
+
+    };
     const loader = new THREE.SVGLoader();
+    loader.myTestFunction();
 
     console.log(camera);
 
-    let renderer = new THREE.WebGLRenderer();
-    renderer = new THREE.SVGRenderer();
+
+    let renderer = new THREE.SVGRenderer();
+
+
 
 
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -34,7 +43,7 @@ function init() {
 
     let displayables = json.series.viewList[0].drawingModel.currentDisplayables;
 
-    for (let x = 0; x < displayables.length; x++) {
+    for (let x = 0; x < 1; x++) {
         let content = displayables[x].display.replace(/\n|\r/gi, "");
         let parsed = loader.parse(content);
         doneFn(parsed);
