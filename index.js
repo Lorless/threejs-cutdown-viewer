@@ -12,30 +12,28 @@ function init() {
     scene.background = new THREE.Color(0xf0f0f0);
     const ovcamera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / -2, window.innerHeight / 2, -2000, 10000);
     //console.log(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / 2, window.innerHeight / -2, -2000, 10000);
-    //const pscamera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
-    const objects = [];
-    const camera = ovcamera;
+    const pscamera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
+    const camera = pscamera;
 
 
     THREE.SVGLoader.prototype.myTestFunction = () => {
-        console.log();
-
+        console.log('test');
     };
     const loader = new THREE.SVGLoader();
     loader.myTestFunction();
 
-    console.log(camera);
-
-
-    let renderer = new THREE.SVGRenderer();
-
-
+    let webRenderer = new THREE.WebGLRenderer();
+    let svgRenderer = new THREE.SVGRenderer();
+    let renderer = svgRenderer;
 
 
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
+
+    //add the canvas to the dom
     document.body.appendChild(renderer.domElement);
-    //camera.position.z = 1000;
+
+    camera.position.z = 1000;
 
     // for(let i =1; i <= 5; i++){
     //     load('svgs/'+i+'.svg');
@@ -56,7 +54,7 @@ function init() {
 
     // //loader.load('copyright.svg', doneFnWrapper);
     // loader.load('dragon.svg', doneFnWrapperName);
-    // loader.load('cartman.svg', doneFnWrapper);
+
 
     function doneFnWrapper(data) {
 
@@ -113,6 +111,43 @@ function init() {
     }
 
 
+    // Create a texture loader so we can load our image file
+    let textureLoader = new THREE.TextureLoader();
+
+    // Load an image file into a custom material
+
+    let material;
+    let mesh;
+
+    console.log('textureLoader');
+    let img = 'http://www.startradiology.com/uploads/images/english-class-x-hip-fig10-ap-view-lines-blanco.jpg';
+    let ovImage = 'http://127.0.0.1:1337/stuart.adam.com/exam/0/image';
+    textureLoader.load(img, (texture)=>{
+        console.log('texture', texture);
+        material = new THREE.MeshBasicMaterial( {
+            map: texture
+        } );
+        // create a plane geometry for the image with a width of 10
+        // and a height that preserves the image's aspect ratio
+        let geometry = new THREE.PlaneGeometry(200, 200 * .75);
+
+        // combine our image geometry and material into a mesh
+        mesh = new THREE.Mesh(geometry, material);
+
+        // set the position of the image mesh in the x,y,z dimensions
+        mesh.position.set(0, 0, 0);
+
+        // add the image to the scene
+        scene.add(mesh);
+        console.log('mesh', mesh);
+    }, ()=>{
+        console.log('progress')
+    }, (err)=>{
+        console.log('failed!', err);
+    });
+
+
+
     // var path = new THREE.Path();
     //
     // path.lineTo(100, 100);
@@ -142,6 +177,12 @@ function init() {
     }
 
     function render() {
+        // if(mesh){
+        //     mesh.position.x +=1;
+        //     mesh.position.z +=1;
+        //     console.log(mesh.position);
+        // }
+
         renderer.render(scene, camera);
     }
 }
