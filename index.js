@@ -4,6 +4,14 @@ function init() {
     scene.background = new THREE.Color(0xf0f0f0);
     const loader = new THREE.SVGLoader();
 
+    window.addEventListener('resize', onWindowResize, false);
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+    }
+
     // flipped orthographic camera displays svgs in correct orientation
     // const ovcamera = new THREE.OrthographicCamera(window.innerWidth / -2, window.innerWidth / 2, window.innerHeight / -2, window.innerHeight / 2, 1, 1110);
 
@@ -14,17 +22,18 @@ function init() {
         window.innerHeight / 2, // frustum top plane.
         window.innerHeight / -2, // frustum bottom plane.
         1, // frustum near plane.
-        110 // frustum far plane.
+        150 // frustum far plane.
     );
     //perspective camera for testing
-    const pscamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1100);
-    let camera = pscamera;
+    const pscamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 150);
+    let camera = ovcamera;
+    camera.position.z = 100;
 
-    camera.position.z = 1000;
 
+    let webRenderer = new THREE.WebGLRenderer({antialias: true});
 
-    let webRenderer = new THREE.WebGLRenderer();
     let svgRenderer = new THREE.SVGRenderer();
+    //let renderer = webRenderer;
     let renderer = webRenderer;
 
 
@@ -38,123 +47,143 @@ function init() {
     // for(let i =1; i <= 5; i++){
     //     load('svgs/'+i+'.svg');
     // }
+    let guiData = {
+        // currentURL: '2.svg',
+        drawFillShapes: true,
+        drawStrokes: true,
+        fillShapesWireframe: false,
+        strokesWireframe: false
+    };
 
-    let displayables = json.series.viewList[0].drawingModel.currentDisplayables;
-
-    for (let x = 1; x < 6; x++) {
-        let content = displayables[x].display.replace(/\n|\r/gi, "");
-        //let parsed = loader.parse(content);
-        loader.load('svgs/' + x + '.svg', doneFn);
-        //doneFn(parsed);
-    }
-
-    // for(let x = 0; x <=5; x++){
-    //     loader.load('svgs/'+x+'.svg', doneFn);
-    //     console.log('svgs/'+x+'.svg');
-    // }
-
-    // //loader.load('copyright.svg', doneFnWrapper);
-    // loader.load('dragon.svg', doneFnWrapperName);
-
-
-    function doneFnWrapper(data) {
-
-        doneFn(data, true,)
-    }
-
-    function doneFnWrapperName(data) {
-        doneFn(data, true, 'dragon')
-    }
 
     let objects = [];
 
-    function doneFn(data, ignorePointAdjust, name) {
+    let displayables = json.series.viewList[0].drawingModel.currentDisplayables;
+
+    loadSVGS();
+    loadImage();
+    addCube();
+
+    function loadSVGS() {
+        for (let x = 0; x <= 5; x++) {
+            let content = displayables[x].display.replace(/\n|\r/gi, "");
+            let parsed = loader.parse(content);
+            loadSVGCallback(parsed);
+            //loader.load('svgs/' + x + '.svg', loadSVGCallback);
+        }
+    }
 
 
+    function loadSVGCallback(data) {
         var paths = data.paths;
-
-        var group = new THREE.Group();
-
-
-        for (let x = 0; x < paths.length; x++) {
-
-
-            for (var i = 0; i < paths[x].subPaths.length; i++) {
-
-                var path = paths[x].subPaths[i];
-
-                const points = path.getPoints();
-
-
-                if (!ignorePointAdjust) {
-                    points.forEach((point) => {
-                        point.x -= 150;
-                        point.y -= 150;
-                    });
+        let group = new THREE.Group();
+        // //group.scale.multiplyScalar(1);
+        // // group.position.x = -600;
+        // // group.position.y = 500;
+        // group.position.z = 2;
+        group.scale.y *= -1;
+        // group.scale.x *= 1;
+        for (var i = 0; i < paths.length; i++) {
+            var path = paths[i];
+            var fillColor = path.userData.style.fill;
+            if (guiData.drawFillShapes && fillColor !== undefined && fillColor !== 'none') {
+                var material = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color().setStyle(fillColor),
+                    opacity: path.userData.style.fillOpacity,
+                    transparent: path.userData.style.fillOpacity < 1,
+                    side: THREE.DoubleSide,
+                    depthWrite: true,
+                    wireframe: guiData.fillShapesWireframe
+                });
+                var shapes = path.toShapes(true);
+                for (var j = 0; j < shapes.length; j++) {
+                    var shape = shapes[j];
+                    var geometry = new THREE.ShapeBufferGeometry(shape);
+                    var mesh = new THREE.Mesh(geometry, material);
+                    group.add(mesh);
                 }
-
-
-                const geometry = new THREE.BufferGeometry().setFromPoints(points);
-
-                const material = new THREE.LineBasicMaterial({color: paths[x].userData.style.stroke});
-
-                const line = new THREE.Line(geometry, material);
-
-                //line.rotation.x = 1;
-
-                group.add(line);
-
-
-
+            }
+            var strokeColor = path.userData.style.stroke;
+            if (guiData.drawStrokes && strokeColor !== undefined && strokeColor !== 'none') {
+                var material = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color().setStyle(strokeColor),
+                    opacity: path.userData.style.strokeOpacity,
+                    transparent: path.userData.style.strokeOpacity < 1,
+                    side: THREE.DoubleSide,
+                    depthWrite: true,
+                    wireframe: guiData.strokesWireframe
+                });
+                for (var j = 0, jl = path.subPaths.length; j < jl; j++) {
+                    var subPath = path.subPaths[j];
+                    var geometry = THREE.SVGLoader.pointsToStroke(subPath.getPoints(), path.userData.style);
+                    if (geometry) {
+                        var mesh = new THREE.Mesh(geometry, material);
+                        group.add(mesh);
+                    }
+                }
 
             }
         }
 
-        // console.log(group);
         scene.add(group);
+        group.position.z = 1;
+        console.log(group.position);
         objects.push(group);
-        group.rotation.x = 3.141;
+
     }
 
 
+    function addCube(){
+
+        let geometry = new THREE.BoxGeometry( 100, 100, 100 );
+        let material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+        let cube = new THREE.Mesh( geometry, material );
+        cube.position.z = 20;
+        scene.add( cube );
+    }
+
     // Create a texture loader so we can load our image file
-    let textureLoader = new THREE.TextureLoader();
-
     // Load an image file into a custom material
-
-    let material;
-    let mesh;
-    let cube;
-
-    console.log('textureLoader');
+    let imageMesh;
     let img = 'http://www.startradiology.com/uploads/images/english-class-x-hip-fig10-ap-view-lines-blanco.jpg';
     let ovImage = 'http://127.0.0.1:1337/stuart.adam.com/exam/0/image';
-    textureLoader.load('image.jfif', (texture) => {
-        console.log('texture', texture);
-        material = new THREE.MeshBasicMaterial({
-            map: texture
+
+    function loadImage(callback) {
+        let textureLoader = new THREE.TextureLoader();
+        textureLoader.load('image.jfif', (texture) => {
+            let material = new THREE.MeshBasicMaterial({
+                map: texture
+            });
+
+            // create a plane geometry for the image with a width of 10
+            // and a height that preserves the image's aspect ratio
+            console.log(texture);
+            let geometry = new THREE.PlaneGeometry(1500, 1048);
+
+            // combine our image geometry and material into a mesh
+            imageMesh = new THREE.Mesh(geometry, material);
+
+
+            // set the position of the image imageMesh in the x,y,z dimensions
+            imageMesh.position.set(0, 0, 0);
+
+            if (imageMesh) {
+                console.log('imageMesh', imageMesh.position.z);
+            }
+
+
+            // add the image to the scene
+            scene.add(imageMesh);
+            if (callback) {
+                callback();
+            }
+
+        }, () => {
+            console.log('progress')
+        }, (err) => {
+            console.log('failed!', err);
         });
-
-        // create a plane geometry for the image with a width of 10
-        // and a height that preserves the image's aspect ratio
-        let geometry = new THREE.PlaneGeometry(200, 200);
-
-        // combine our image geometry and material into a mesh
-        mesh = new THREE.Mesh(geometry, material);
-
-
-        // set the position of the image mesh in the x,y,z dimensions
-        mesh.position.set(0, 0, 0);
-
-
-        // add the image to the scene
-        scene.add(mesh);
-        console.log('mesh', mesh);
-    }, () => {
-        console.log('progress')
-    }, (err) => {
-        console.log('failed!', err);
-    });
+    }
 
 
     // lighting
@@ -167,11 +196,6 @@ function init() {
 
 
     function animate() {
-
-        if(objects[0]){
-          //objects.forEach(obj=> obj.rotateX()
-            console.log(objects[0].rotation.x);
-        }
 
 
         requestAnimationFrame(animate);
