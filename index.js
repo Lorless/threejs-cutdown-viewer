@@ -4,12 +4,12 @@ function init() {
     scene.background = new THREE.Color(0xf0f0f0);
     const loader = new THREE.SVGLoader();
 
-    window.addEventListener('resize', onWindowResize, false);
+    //window.addEventListener('resize', onWindowResize, false);
 
     function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
-        renderer.setSize( window.innerWidth, window.innerHeight );
+        renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
     // flipped orthographic camera displays svgs in correct orientation
@@ -38,15 +38,13 @@ function init() {
 
 
     renderer.setPixelRatio(window.devicePixelRatio);
+    //RENDERER SIZE!
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     //add the canvas to the dom
     document.body.appendChild(renderer.domElement);
 
 
-    // for(let i =1; i <= 5; i++){
-    //     load('svgs/'+i+'.svg');
-    // }
     let guiData = {
         // currentURL: '2.svg',
         drawFillShapes: true,
@@ -69,13 +67,12 @@ function init() {
             let content = displayables[x].display.replace(/\n|\r/gi, "");
             let parsed = loader.parse(content);
             loadSVGCallback(parsed);
-            //loader.load('svgs/' + x + '.svg', loadSVGCallback);
         }
     }
 
 
     function loadSVGCallback(data) {
-        var paths = data.paths;
+        let paths = data.paths;
         let group = new THREE.Group();
         // //group.scale.multiplyScalar(1);
         // // group.position.x = -600;
@@ -84,10 +81,11 @@ function init() {
         group.scale.y *= -1;
         // group.scale.x *= 1;
         for (var i = 0; i < paths.length; i++) {
-            var path = paths[i];
-            var fillColor = path.userData.style.fill;
+            let path = paths[i];
+            let fillColor = path.userData.style.fill;
             if (guiData.drawFillShapes && fillColor !== undefined && fillColor !== 'none') {
-                var material = new THREE.MeshBasicMaterial({
+                console.log('drawFill');
+                let material = new THREE.MeshBasicMaterial({
                     color: new THREE.Color().setStyle(fillColor),
                     opacity: path.userData.style.fillOpacity,
                     transparent: path.userData.style.fillOpacity < 1,
@@ -95,17 +93,17 @@ function init() {
                     depthWrite: true,
                     wireframe: guiData.fillShapesWireframe
                 });
-                var shapes = path.toShapes(true);
-                for (var j = 0; j < shapes.length; j++) {
-                    var shape = shapes[j];
-                    var geometry = new THREE.ShapeBufferGeometry(shape);
-                    var mesh = new THREE.Mesh(geometry, material);
+                let shapes = path.toShapes(true);
+                for (let j = 0; j < shapes.length; j++) {
+                    let shape = shapes[j];
+                    let geometry = new THREE.ShapeBufferGeometry(shape);
+                    let mesh = new THREE.Mesh(geometry, material);
                     group.add(mesh);
                 }
             }
             var strokeColor = path.userData.style.stroke;
             if (guiData.drawStrokes && strokeColor !== undefined && strokeColor !== 'none') {
-                var material = new THREE.MeshBasicMaterial({
+                let material = new THREE.MeshBasicMaterial({
                     color: new THREE.Color().setStyle(strokeColor),
                     opacity: path.userData.style.strokeOpacity,
                     transparent: path.userData.style.strokeOpacity < 1,
@@ -113,11 +111,26 @@ function init() {
                     depthWrite: true,
                     wireframe: guiData.strokesWireframe
                 });
-                for (var j = 0, jl = path.subPaths.length; j < jl; j++) {
-                    var subPath = path.subPaths[j];
-                    var geometry = THREE.SVGLoader.pointsToStroke(subPath.getPoints(), path.userData.style);
+                for (let j = 0, jl = path.subPaths.length; j < jl; j++) {
+                    let subPath = path.subPaths[j];
+
+                    // subPath.currentPoint.x = -((window.innerWidth / 2) - subPath.currentPoint.x);
+                    // subPath.currentPoint.y = -((window.innerHeight / 2) - subPath.currentPoint.y);
+                    // console.log(subPath.currentPoint.y);
+                    // //console.log('subpath', subPath);
+                    // subPath.curves.forEach(curve => {
+                    //     if (curve.v1 && curve.v2) {
+                    //         curve.v1.x = subPath.currentPoint.x;
+                    //         curve.v2.x = subPath.currentPoint.x;
+                    //         //curve.v1.y = subPath.currentPoint.y;
+                    //         //curve.v2.y = subPath.currentPoint.y;
+                    //     }
+                    // });
+                    console.log('subpath', subPath);
+
+                    let geometry = THREE.SVGLoader.pointsToStroke(subPath.getPoints(), path.userData.style);
                     if (geometry) {
-                        var mesh = new THREE.Mesh(geometry, material);
+                        let mesh = new THREE.Mesh(geometry, material);
                         group.add(mesh);
                     }
                 }
@@ -125,21 +138,25 @@ function init() {
             }
         }
 
-        scene.add(group);
         group.position.z = 1;
-        console.log(group.position);
+        group.position.x = -(window.innerWidth/2);
+        group.position.y = (window.innerHeight/2);
+        scene.add(group);
+        //console.log(group.position);
         objects.push(group);
 
     }
 
 
-    function addCube(){
+    function addCube() {
 
-        let geometry = new THREE.BoxGeometry( 100, 100, 100 );
-        let material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-        let cube = new THREE.Mesh( geometry, material );
+        let geometry = new THREE.BoxGeometry(100, 100, 100);
+        let material = new THREE.MeshBasicMaterial({color: 0x00ff00});
+        let cube = new THREE.Mesh(geometry, material);
         cube.position.z = 20;
-        scene.add( cube );
+        cube.position.x = 0;
+        cube.position.y = 200;
+        scene.add(cube);
     }
 
     // Create a texture loader so we can load our image file
