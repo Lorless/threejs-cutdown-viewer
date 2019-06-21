@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "three": "^0.105.1"
+    "three": "^0.105.1",
+    "three-dragger": "^1.0.1"
   },
   "devDependencies": {},
   "scripts": {
