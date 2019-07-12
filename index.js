@@ -1,6 +1,150 @@
 function init() {
 
-    const canvasLeft = -(window.innerWidth/2), canvasBottom = -(window.innerHeight/2), canvasTop = window.innerHeight/2;
+    document.onclick = handleMouseMove;
+
+    let clientX = null;
+    let clientY = null;
+
+    function handleMouseMove(e){
+        clientX = e.clientX;
+        clientY = e.clientY;
+
+        let dragPos = {
+            x1: 0,
+            x2: e.clientX,
+            y1: 0,
+            y2: e.clientY,
+            right: false,
+            shift: false
+        };
+
+        postPosition(dragPos)
+    }
+
+    function getExam() {
+        let urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('exam');
+
+    }
+
+    function fetchExam() {
+
+        let opts = {
+            headers: {
+                Accept: 'application/json',
+            }
+        };
+        return fetch('http://localhost:1337/localhost:8081/exam/' + getExam() + '/display/TEMPLATE_ORTHO_ID', opts).then(response => {
+
+            return new Promise((resolve, reject) => {
+                console.log(response);
+                if (response.status !== 404) {
+                    return resolve(response.json())
+                } else {
+                    return reject("FAILURE")
+                }
+            })
+        }).catch(err => {
+            console.log(err);
+        });
+    }
+
+    function translatePosData(data) {
+        // console.log(data);
+        // let halfWidth = window.innerWidth / 2;
+        // let halfHeight = window.innerHeight / 2;
+        // data.x1 = data.x1 + halfWidth;
+        // data.x2 = data.x2 + halfWidth;
+        // // data.y1 = data.y1;
+        // // data.y2 = data.y2;
+        // console.log(data);
+        return data
+    }
+
+    function clearScene(){
+        console.log(scene.children);
+        scene.children.forEach(()=>{
+
+        })
+    }
+
+    function postPosition(data) {
+        console.log('postPosition');
+
+        data = translatePosData(data);
+
+        let opts = {
+            method: 'POST',
+            body: JSON.stringify(data),
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        };
+
+        fetch('http://localhost:1337/localhost:8081/exam/' + getExam() + '/drag', opts)
+            .then(response => {
+                    response.json().then((res) => {
+                        console.log(res);
+                        clearScene();
+                        loadImage();
+                        loadSVGS(res);
+                    });
+                }
+            ).catch(err => {
+
+        })
+    }
+
+    function loadSVGS(displayables) {
+
+        for (let x = 0; x <= 5; x++) {
+            let displayable = displayables[x];
+            let content = displayable.display.replace(/\n|\r/gi, "");
+            let parsed = loader.parse(content);
+
+
+            parsed.paths = parsed.paths.slice(0, parsed.paths.length);
+
+            let hotzones = displayable.hotzone;
+            hotzones.forEach(hotzone => {
+                addHotspot(hotzone.bounds);
+            });
+
+            loadSVGCallback(parsed);
+        }
+
+        let dragPos = {
+            x1: null,
+            x2: null,
+            y1: null,
+            y2: null,
+            right: false,
+            shift: false
+        };
+
+
+        let dragControls = new THREE.DragControls(dragObjects, camera, renderer.domElement);
+        dragControls.addEventListener('dragstart', function (e) {
+
+            console.log(e);
+
+            dragPos.x1 = e.object.position.x;
+            dragPos.y1 = e.object.position.y
+
+        });
+        dragControls.addEventListener('dragend', function (e) {
+
+            dragPos.x2 = clientX;
+            dragPos.y2 = clientY;
+            postPosition(dragPos);
+        });
+
+
+    }
+
+
+    const canvasLeft = -(window.innerWidth / 2), canvasBottom = -(window.innerHeight / 2),
+        canvasTop = window.innerHeight / 2;
 
 
     const scene = new THREE.Scene();
@@ -39,6 +183,8 @@ function init() {
     //let renderer = webRenderer;
     let renderer = webRenderer;
 
+    let BGU = THREE.BufferGeometryUtils;
+
 
     renderer.setPixelRatio(window.devicePixelRatio);
     //RENDERER SIZE!
@@ -47,9 +193,9 @@ function init() {
     //add the canvas to the dom
     document.body.appendChild(renderer.domElement);
 
-    let helper = new THREE.GridHelper( 160, 10 );
-    helper.rotation.x = Math.PI / 2;
-    scene.add( helper );
+    // let helper = new THREE.GridHelper( 160, 10 );
+    // helper.rotation.x = Math.PI / 2;
+    // scene.add( helper );
 
 
     let guiData = {
@@ -62,54 +208,41 @@ function init() {
 
 
     let objects = [];
+    let dragObjects = [];
+    let hotspots = [];
+    // let grid = new THREE.GridHelper(100, 10);
+    // grid.position.z = 20;
+    // scene.add(grid);
+    // objects.push(grid); // add to the array for DragControls
+    // grid.scale.y = -1;
 
-    let displayables = json.series.viewList[0].drawingModel.currentDisplayables;
-    console.log(displayables);
+    let displayables = [];
+    //let displayables = json.series.viewList[0].drawingModel.currentDisplayables;
 
-    loadSVGS();
-    loadImage();
+    fetchExam().then(response => {
+        loadSVGS(response);
+        loadImage();
+    });
+
+
+    //addCubeAndSphere();
     //addCube();
+
 
     //loader.load('copyright.svg', loadSVGCallback);
 
-    function loadSVGS() {
-
-        for (let x = 0; x <= 5; x++) {
-            let displayable = displayables[x];
-            let content = displayable.display.replace(/\n|\r/gi, "");
-            let parsed = loader.parse(content);
-
-            let hotzones = displayable.hotzone;
-            hotzones.forEach(hotzone => {
-
-            });
-
-            loadSVGCallback(parsed);
-        }
-
-        console.log('objects', objects);
-        let dragControls = new THREE.DragControls( objects, camera, renderer.domElement );
-        dragControls.addEventListener( 'dragstart', function () {
-            console.log('dragStart');
-        } );
-        dragControls.addEventListener( 'dragend', function () {
-            console.log('dragEnd')
-        } );
-    }
-
-
 
     function loadSVGCallback(data) {
+        let meshObjects = [];
         let paths = data.paths;
         let group = new THREE.Group();
         // scales a vector3 (x y and z) by given value 1,-1,1 by 2 becomes 2,-2,2
         // group.scale.multiplyScalar(2);
         // group.position.x = -600;
-        //group.position.y = 500;
+        // group.position.y = 500;
         // group.position.z = 2;
-
         //flips the y scale over so our upside down svg is now right way up
-        group.scale.y = -1;
+        // group.scale.y = -1;
 
         // group.scale.x *= 1;
         for (var i = 0; i < paths.length; i++) {
@@ -136,7 +269,9 @@ function init() {
                     let geometry = new THREE.ShapeBufferGeometry(shape);
                     let mesh = new THREE.Mesh(geometry, material);
 
-                    group.add(mesh);
+                    meshObjects.push(mesh);
+                    //grid.add(mesh);
+                    // group.add(mesh);
                 }
             }
             var strokeColor = path.userData.style.stroke;
@@ -159,71 +294,86 @@ function init() {
                     if (geometry) {
                         let mesh = new THREE.Mesh(geometry, material);
 
-                        group.add(mesh);
+                        meshObjects.push(mesh);
+                        // grid.add(mesh);
+                        // group.add(mesh);
                     }
                 }
 
             }
         }
 
-        group.position.z = 20;
-        group.position.y = canvasTop;
-        group.position.x = canvasLeft;
+        let geometries = meshObjects.map(mesh => {
+            let g = new THREE.Geometry();
+            g.fromBufferGeometry(mesh.geometry);
+            return g;
+        });
 
-        objects.push(group);
+        if (geometries.length) {
+            let singleGeometry = new THREE.Geometry();
+
+            geometries.forEach(g => {
+                //g.updateMatrix(); // as needed
+                singleGeometry.merge(g);
+            });
+
+            let material = new THREE.MeshBasicMaterial({color: 0xFF0080});
+            let mesh = new THREE.Mesh(singleGeometry, material);
+            mesh.scale.y = -1;
+            mesh.scale.x = 1;
+            mesh.position.z = 20;
+            // mesh.position.x = canvasLeft;
+            // mesh.position.y = canvasTop;
+
+            scene.add(mesh);
+            dragObjects.push(mesh);
 
 
 
-        scene.add(group);
+        }
+        // group.position.z = 20;
+        // group.position.y = canvasTop;
+        // group.position.x = canvasLeft;
+        //objects.push(group);
+        //scene.add(group);
     }
 
-    function modifyCurves(curves){
-        // curves.forEach(curve => {
-        //
-        //     if (curve.v1 && curve.v2) {
-        //         // objects.push(curve);
-        //         // curve.v1.x = curve.v1.x;
-        //         // curve.v2.x = curve.v2.x;
-        //
-        //         curve.v1.y = -curve.v1.y;
-        //         curve.v2.y = -curve.v2.y;
-        //     } else {
-        //         curve.aY = -curve.aY;
-        //         curve.aClockwise = true;
-        //         //curve.aRotation = 1.5;
-        //         console.log('curve 0 ', curve)
-        //
-        //     }
-        // });
-        //
-        return curves;
 
+    function addHotspot(bounds) {
+
+        let geometry = new THREE.BoxGeometry(bounds.w, bounds.h, 1);
+        let material = new THREE.MeshBasicMaterial({color: 0x00b311, opacity: 0.5, transparent: true});
+        let cube = new THREE.Mesh(geometry, material);
+        cube.position.z = 21;
+        cube.position.x = canvasLeft + bounds.x + (bounds.w / 2);
+
+        cube.position.y = canvasTop - bounds.y - (bounds.h / 2);
+        scene.add(cube);
+        hotspots.push(cube);
     }
-
 
     function addCube() {
 
         //original draw position of first svg (small box) point at //M434.9438 234.0988 //L512.7757 263.6883
         let geometry = new THREE.BoxGeometry(5, 5, 2);
-        let color = new THREE.Color( 0x00b300 );
+        let color = new THREE.Color(0x00b300);
         let material = new THREE.MeshBasicMaterial({color: color});
         let cube = new THREE.Mesh(geometry, material);
         cube.position.z = 20;
         cube.position.x = 434.9438;
         cube.position.y = 234.0988;
         scene.add(cube);
-        let color1a = new THREE.Color( 0x000000 );
+        let color1a = new THREE.Color(0x000000);
         let material1a = new THREE.MeshBasicMaterial({color: color1a});
         let cube1a = new THREE.Mesh(geometry, material1a);
         cube1a.position.x = 501.4073;
-        cube1a.position.y =  294.6224;
+        cube1a.position.y = 294.6224;
         scene.add(cube1a);
 
         let cube1b = new THREE.Mesh(geometry, material);
         cube1b.position.x = 492.2168;
-        cube1b.position.y =  296.7241;
+        cube1b.position.y = 296.7241;
         scene.add(cube1b);
-
 
 
         //center left
@@ -263,8 +413,7 @@ function init() {
         group.add(cube5);
         group.add(cube6);
         scene.add(group);
-        group.position.x =0;
-
+        group.position.x = 0;
 
 
     }
@@ -288,7 +437,7 @@ function init() {
             const imageWidth = 2500;
             const imageHeight = 2048;
 
-            const halfWidth = imageWidth / 2,  halfHeight = imageHeight /2;
+            const halfWidth = imageWidth / 2, halfHeight = imageHeight / 2;
 
             const useWidth = halfWidth;
             const useHeight = halfHeight;
@@ -299,9 +448,11 @@ function init() {
             // combine our image geometry and material into a mesh
             imageMesh = new THREE.Mesh(geometry, material);
 
+            imageMesh.name = 'background';
+
 
             // set the position of the image imageMesh in the x,y,z dimensions
-            imageMesh.position.set(canvasLeft + useWidth/2 , canvasBottom + useHeight/2, 0);
+            imageMesh.position.set(canvasLeft + useWidth / 2, canvasBottom + useHeight / 2, 0);
 
 
             // add the image to the scene
@@ -311,9 +462,9 @@ function init() {
             }
 
         }, () => {
-            console.log('progress')
+
         }, (err) => {
-            console.log('failed!', err);
+
         });
     }
 
@@ -327,7 +478,6 @@ function init() {
     animate();
 
 
-
     function animate() {
 
 
@@ -338,6 +488,7 @@ function init() {
     function render() {
         renderer.render(scene, camera);
     }
+
 
 }
 
