@@ -1,24 +1,60 @@
 function init() {
 
-    document.onclick = handleMouseMove;
+    //document.onclick = handleMouseMove;
+    document.onmousedown = mouseDown;
+    document.onmouseup = mouseUp;
+
+
 
     let clientX = null;
     let clientY = null;
 
-    function handleMouseMove(e){
-        clientX = e.clientX;
-        clientY = e.clientY;
+    let lastClick = null;
+    let thisClick = null;
 
+    function mouseDown(e){
+        lastClick = {x:e.clientX, y:e.clientY};
+        console.log('md');
+    }
+
+    function mouseUp(e){
+        console.log('mu');
+        thisClick = {x:e.clientX, y:e.clientY};
         let dragPos = {
-            x1: 0,
-            x2: e.clientX,
-            y1: 0,
-            y2: e.clientY,
+            x1: lastClick.x,
+            x2: thisClick.x,
+            y1: lastClick.y,
+            y2: thisClick.y,
             right: false,
             shift: false
         };
+        postPosition(dragPos);
+    }
 
-        postPosition(dragPos)
+    function handleMouseMove(e){
+        if(!lastClick){
+            lastClick = {x:e.clientX, y:e.clientY};
+            console.log('lastClick set', lastClick.x, lastClick.y);
+        } else {
+            thisClick = {x:e.clientX, y:e.clientY};
+
+            let dragPos = {
+                x1: lastClick.x,
+                x2: thisClick.x,
+                y1: lastClick.y,
+                y2: thisClick.y,
+                right: false,
+                shift: false
+            };
+
+            console.log('lastClick set', thisClick.x, thisClick.y);
+            postPosition(dragPos);
+
+            lastClick = null;
+
+        }
+
+
     }
 
     function getExam() {
@@ -62,10 +98,14 @@ function init() {
     }
 
     function clearScene(){
-        console.log(scene.children);
-        scene.children.forEach(()=>{
 
-        })
+        for(let i = scene.children.length-1; i >= 0; i--){
+            let child = scene.children[i];
+            if(child.name!=='background'&&child.type==='Mesh'){
+                scene.remove(child);
+            }
+        }
+
     }
 
     function postPosition(data) {
@@ -123,21 +163,21 @@ function init() {
         };
 
 
-        let dragControls = new THREE.DragControls(dragObjects, camera, renderer.domElement);
-        dragControls.addEventListener('dragstart', function (e) {
-
-            console.log(e);
-
-            dragPos.x1 = e.object.position.x;
-            dragPos.y1 = e.object.position.y
-
-        });
-        dragControls.addEventListener('dragend', function (e) {
-
-            dragPos.x2 = clientX;
-            dragPos.y2 = clientY;
-            postPosition(dragPos);
-        });
+        // let dragControls = new THREE.DragControls(dragObjects, camera, renderer.domElement);
+        // dragControls.addEventListener('dragstart', function (e) {
+        //
+        //     console.log(e);
+        //
+        //     dragPos.x1 = e.object.position.x;
+        //     dragPos.y1 = e.object.position.y
+        //
+        // });
+        // dragControls.addEventListener('dragend', function (e) {
+        //
+        //     dragPos.x2 = clientX;
+        //     dragPos.y2 = clientY;
+        //     postPosition(dragPos);
+        // });
 
 
     }
@@ -322,8 +362,8 @@ function init() {
             mesh.scale.y = -1;
             mesh.scale.x = 1;
             mesh.position.z = 20;
-            // mesh.position.x = canvasLeft;
-            // mesh.position.y = canvasTop;
+            mesh.position.x = canvasLeft;
+            mesh.position.y = canvasTop;
 
             scene.add(mesh);
             dragObjects.push(mesh);
