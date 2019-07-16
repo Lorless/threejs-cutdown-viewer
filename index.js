@@ -4,6 +4,11 @@ function init() {
     document.onmousedown = mouseDown;
     document.onmouseup = mouseUp;
 
+    const naturalUrl = 'http://localhost:8081';
+    const corsUrl = 'http://localhost:1337/localhost:8081';
+    const useCors = true;
+
+    const url  = useCors ? corsUrl : naturalUrl;
 
 
     let clientX = null;
@@ -70,7 +75,7 @@ function init() {
                 Accept: 'application/json',
             }
         };
-        return fetch('http://localhost:1337/localhost:8081/exam/' + getExam() + '/display/TEMPLATE_ORTHO_ID', opts).then(response => {
+        return fetch(url + '/exam/' + getExam() + '/display/TEMPLATE_ORTHO_ID', opts).then(response => {
 
             return new Promise((resolve, reject) => {
                 console.log(response);
@@ -121,14 +126,17 @@ function init() {
             }
         };
 
-        fetch('http://localhost:1337/localhost:8081/exam/' + getExam() + '/drag', opts)
+        fetch(url+'/exam/' + getExam() + '/drag', opts)
             .then(response => {
-                    response.json().then((res) => {
-                        console.log(res);
-                        clearScene();
-                        loadImage();
-                        loadSVGS(res);
-                    });
+                    if(response.ok===true){
+                        response.json().then((res) => {
+                            console.log(res);
+                            clearScene();
+                            loadImage();
+                            loadSVGS(res);
+                        });
+                    }
+
                 }
             ).catch(err => {
 
@@ -136,6 +144,8 @@ function init() {
     }
 
     function loadSVGS(displayables) {
+
+        console.log(displayables);
 
         for (let x = 0; x <= 5; x++) {
             let displayable = displayables[x];
@@ -186,6 +196,8 @@ function init() {
     const canvasLeft = -(window.innerWidth / 2), canvasBottom = -(window.innerHeight / 2),
         canvasTop = window.innerHeight / 2;
 
+    console.log(window.innerWidth, window.innerHeight);
+
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf0f0f0);
@@ -233,11 +245,6 @@ function init() {
     //add the canvas to the dom
     document.body.appendChild(renderer.domElement);
 
-    // let helper = new THREE.GridHelper( 160, 10 );
-    // helper.rotation.x = Math.PI / 2;
-    // scene.add( helper );
-
-
     let guiData = {
         // currentURL: '2.svg',
         drawFillShapes: true,
@@ -247,29 +254,14 @@ function init() {
     };
 
 
-    let objects = [];
+
     let dragObjects = [];
     let hotspots = [];
-    // let grid = new THREE.GridHelper(100, 10);
-    // grid.position.z = 20;
-    // scene.add(grid);
-    // objects.push(grid); // add to the array for DragControls
-    // grid.scale.y = -1;
-
-    let displayables = [];
-    //let displayables = json.series.viewList[0].drawingModel.currentDisplayables;
 
     fetchExam().then(response => {
         loadSVGS(response);
         loadImage();
     });
-
-
-    //addCubeAndSphere();
-    //addCube();
-
-
-    //loader.load('copyright.svg', loadSVGCallback);
 
 
     function loadSVGCallback(data) {
@@ -384,11 +376,14 @@ function init() {
         let geometry = new THREE.BoxGeometry(bounds.w, bounds.h, 1);
         let material = new THREE.MeshBasicMaterial({color: 0x00b311, opacity: 0.5, transparent: true});
         let cube = new THREE.Mesh(geometry, material);
+        console.log(bounds.x, bounds.y);
         cube.position.z = 21;
         cube.position.x = canvasLeft + bounds.x + (bounds.w / 2);
-
         cube.position.y = canvasTop - bounds.y - (bounds.h / 2);
+        // cube.position.x = bounds.x;
+        // cube.position.y = bounds.y;
         scene.add(cube);
+        console.log(cube.position);
         hotspots.push(cube);
     }
 
@@ -461,12 +456,10 @@ function init() {
     // Create a texture loader so we can load our image file
     // Load an image file into a custom material
     let imageMesh;
-    let img = 'http://www.startradiology.com/uploads/images/english-class-x-hip-fig10-ap-view-lines-blanco.jpg';
-    let ovImage = 'http://127.0.0.1:1337/stuart.adam.com/exam/0/image';
 
     function loadImage(callback) {
         let textureLoader = new THREE.TextureLoader();
-        textureLoader.load('image.jfif', (texture) => {
+        textureLoader.load(url+'/exam/'+getExam()+'/image', (texture) => {
             let material = new THREE.MeshBasicMaterial({
                 map: texture
             });
