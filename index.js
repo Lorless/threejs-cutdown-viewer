@@ -79,14 +79,13 @@ function init() {
 
             return new Promise((resolve, reject) => {
                 console.log(response);
-                if (response.status !== 404) {
+                if (response.ok) {
                     return resolve(response.json())
                 } else {
+                    console.log('reject!');
                     return reject("FAILURE")
                 }
             })
-        }).catch(err => {
-            console.log(err);
         });
     }
 
@@ -258,10 +257,17 @@ function init() {
     let dragObjects = [];
     let hotspots = [];
 
-    fetchExam().then(response => {
-        loadSVGS(response);
-        loadImage();
-    });
+    if(getExam()!==null){
+        fetchExam().then(response => {
+            loadSVGS(response);
+            loadImage();
+        }, err =>{
+            alert('Fetch Exam: '+err);
+        });
+    } else{
+        alert('provide exam number: 127.0.0.1:8080?exam=0')
+    }
+
 
 
     function loadSVGCallback(data) {
