@@ -265,7 +265,10 @@ function init() {
             alert('Fetch Exam: '+err);
         });
     } else{
-        alert('provide exam number: 127.0.0.1:8080?exam=0')
+        console.log('failed exam get');
+        let div = document.createElement('div');
+        div.innerHTML = 'provide exam number: 127.0.0.1:8080?exam=0';
+        document.body.prepend(div);
     }
 
 
